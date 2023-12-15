@@ -1,0 +1,69 @@
+In[14]:= pdbFindMoleculeName[name_String, num : (_Integer?Positive) : 10] := 
+ Module[{query, res}, 
+  query = XMLObject[
+"Document"][{XMLObject["Declaration"]["Version" -> "1.0", 
+"Encoding" -> "UTF-8"]}, 
+XMLElement[
+   "orgPdbQuery", {}, {XMLElement[
+       "queryType", {}, {"org.pdb.query.simple.StructTitleQuery"}], 
+      XMLElement["struct.title.comparator", {}, {"contains"}], 
+      XMLElement["struct.title.value", {}, {name}]}], {}];
+  res = URLRead[
+    HTTPRequest[
+     "http://www.rcsb.org/pdb/rest/search/", <|
+      "ContentType" -> "application/x-www-form-urlencoded", 
+      "Body" -> ExportString[query, "XML"], "Method" -> "POST"|>]];
+  If[! FailureQ[res], res = Import[res];
+        If[res =!= "null", res = DeleteDuplicates[Flatten[res]];
+    res = 
+     Dataset[AssociationThread[{"PDB ID", "Title", "Structure"}, {#, 
+          Cases[Import["http://www.rcsb.org/pdb/rest/describePDB?structureId=" \
+<> #, "XML"], ("title" -> t_) :> t, \[Infinity]][[1]], 
+          Import["https://files.rcsb.org/download/" <> # <> ".pdb", 
+           "PDB"]}] & /@ Take[res, UpTo[num]]],res = Failure[
+      "NoResults", <| "MessageTemplate" :> "No results found for `name`","MessageParameters" -> <|"name" -> name|>|>]]];res]
+
+In[386]:= SnailProt1 = URLExecute["https://www.uniprot.org/uniprot/P18513.fasta","FASTA"][[1]]
+
+Out[386]= \"MKLTCMMIVAVLFLTAWTFVTADDSGNGLENLFSKAHHEMKNPEASNLNKRCAPFLHPCTFFFPNCCNS\YCVQFICL"
+
+In[65]:= SnailProt2 = URLExecute["https://www.uniprot.org/uniprot/P18512.fasta","FASTA"][[1]]
+
+Out[65]= "MKLTCMMIVAVLFLTAWTFATADDSSNGLENLFSKAHHEMKNPEASKLNKRCIEQFDPCD\MIRHTCCVGVCFLMACI"
+
+In[66]:= SnailProt3 = URLExecute["https://www.uniprot.org/uniprot/P18511.fasta","FASTA"][[1]]
+
+Out[66]= "MKLTCMMIVAVLFLTAWTFATADDPRNGLGNLFSNAHHEMKNPEASKLNKRWCKQSGEMC\ NLLDQNCCDGYCIVLVCT"
+
+In[68]:= MainProt = Import["C:\\Users\\AlexandriaTaylor\\Desktop\\Spring \2020\\151(Protein Processing)\\Main.txt", "Text"]
+
+Out[68]= "WCKQSGEMCNLLDQNCCDGYCIVLVCT"
+
+In[70]:= SequenceAlignment[MainProt, SnailProt1, 
+ SimilarityRules -> "BLOSUM62"]
+
+Out[70]= {{"", "MKLTCMMIVAVLFLTA"}, "W", {"CKQ", 
+  "TFVTADD"}, "SG", {"", "NGLENLFSKAHH"}, "EM", {"C", 
+  "KNPEAS"}, "NL", {"", "NKRCAPF"}, "L", {"DQ", 
+  "HPCTFFFP"}, "NCC", {"DG", "NS"}, "YC", {"IVLV", "VQFI"}, "C", {"T",
+   "L"}}
+
+In[72]:= SequenceAlignment[MainProt, SnailProt2, 
+ SimilarityRules -> "BLOSUM62"]
+
+Out[72]= {{"", "MKLTCMMIVAVLFLTA"}, "W", {"CKQ", "TFATADD"}, "S", {"",
+   "SN"}, "G", {"", "LENLFSKAHH"}, "EM", {"C", "K"}, "N", {"L", 
+  "PEASK"}, "L", {"DQN", "NKR"}, "C", {"", "IEQFDP"}, "CD", {"GY", 
+  "MIRHTC"}, "C", {"I", "VG"}, "V", {"", "CF"}, "L", {"V", 
+  "MA"}, "C", {"T", "I"}}
+
+In[75]:= SequenceAlignment[MainProt, SnailProt3, 
+ SimilarityRules -> "BLOSUM62"]
+
+Out[75]= {{"", 
+  "MKLTCMMIVAVLFLTAWTFATADDPRNGLGNLFSNAHHEMKNPEASKLNKR"}, \
+"WCKQSGEMCNLLDQNCCDGYCIVLVCT"}
+
+
+
+
